@@ -1,0 +1,51 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+*.egg
+dist/
+build/
+
+# === Environment & Config ===
+.env
+*.env.*
+
+
+# === Virtual Environments ===
+.venv/
+venv/
+env/
+ENV/
+
+# === IDE / Editors ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+
+
+# === Tests / Coverage ===
+.coverage
+htmlcov/
+.pytest_cache/
+tests/__pycache__/
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Deploy / Docker ===
+deploy/__pycache__/
+deploy/*.pid
+deploy/*.log
+*.bak
+
+# === Temporary files ===
+tmp/
+temp/

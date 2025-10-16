@@ -1,0 +1,22 @@
+# --- Core ---
+aiogram==3.13.1
+SQLAlchemy==2.0.36
+pydantic==2.9.2
+python-dotenv==1.0.1
+
+# --- Utils ---
+aiofiles==24.1.0
+requests==2.32.3
+
+# --- Logging & Validation ---
+loguru==0.7.2
+phonenumbers==8.13.40
+
+# --- Testing ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# --- Optional (для админ-панели и деплоя) ---
+alembic==1.14.0          # миграции БД, если нужно
+uvloop==0.20.0            # ускорение asyncio (Linux/macOS)
+
