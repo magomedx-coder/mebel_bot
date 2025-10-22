@@ -1,5 +1,5 @@
 # Конфигурация бота
-TOKEN = "8305988708:AAG3iHknVnK4XKHQJyGTsfdSG0ARFhacyJo"  # Замените на ваш токен от @BotFather
+TOKEN = "7237592412:AAGrW6lctn4rWSLjsVJsJErxb7nHt2T3Ndw"  # Замените на ваш токен от @BotFather
 
 # Настройки базы данных
 DATABASE_URL = "sqlite:///database/app.db"

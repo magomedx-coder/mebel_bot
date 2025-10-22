@@ -4,18 +4,58 @@ from database.db import get_session, list_categories
 from typing import Optional
 
 
-def get_main_menu() -> InlineKeyboardMarkup:
+def get_main_menu(is_admin: bool = False) -> InlineKeyboardMarkup:
     """Создает главное меню с категориями мебели"""
     builder = InlineKeyboardBuilder()
     
-    # Получаем категории из базы данных
-    with get_session() as session:
-        main_categories = list_categories(session, parent_id=None)
+    # Основные категории мебели
+    builder.button(text="Спальная мебель", callback_data="category:bedroom")
+    builder.button(text="Кухонная мебель", callback_data="category:kitchen")
+    builder.button(text="Мягкая мебель", callback_data="category:soft")
+    builder.button(text="Столы и стулья", callback_data="category:tables")
+    builder.button(text="Тумбы и комоды", callback_data="category:cabinets")
+    builder.button(text="Кровати", callback_data="category:beds")
+    builder.button(text="Матрасы", callback_data="category:mattress")
+    builder.button(text="Шкафы", callback_data="category:wardrobes")
     
-    # Добавляем кнопки категорий
-    for category in main_categories:
-        builder.button(text=category.name, callback_data=f"category:{category.slug}")
+    # Информационные разделы
+    builder.button(text="О компании / Контакты", callback_data="about_company")
+    builder.button(text="Сотрудничество", callback_data="cooperation")
     
+    # Кнопка админ-панели для администраторов
+    if is_admin:
+        builder.button(text="Настройка бота", callback_data="admin_panel")
+    
+    # Устанавливаем по 2 кнопки в ряд
+    builder.adjust(2)
+    
+    return builder.as_markup()
+
+
+def get_subcategory_menu(category_slug: str) -> Optional[InlineKeyboardMarkup]:
+    """Создает клавиатуру с подкатегориями для определенных категорий мебели"""
+    builder = InlineKeyboardBuilder()
+    
+    if category_slug in ["bedroom", "soft", "tables"]:
+        builder.button(text="🇷🇺 Россия", callback_data=f"subcategory:{category_slug}:russia")
+        builder.button(text="🇹🇷 Турция", callback_data=f"subcategory:{category_slug}:turkey")
+    elif category_slug == "kitchen":
+        builder.button(text="Прямая кухня", callback_data=f"subcategory:kitchen:straight")
+        builder.button(text="Угловая кухня", callback_data=f"subcategory:kitchen:corner")
+    else:
+        return None
+        
+    builder.button(text="« Назад", callback_data="back_to_main")
+    builder.adjust(2, 1)
+    
+    return builder.as_markup()
+
+
+def get_back_to_menu() -> InlineKeyboardMarkup:
+    """Создает клавиатуру с кнопкой возврата в главное меню"""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="« Вернуться в главное меню", callback_data="back_to_main")
+    return builder.as_markup()
     # Добавляем информационные кнопки
     builder.button(text="ℹ️ О компании/контакты", callback_data="about_company")
     builder.button(text="🤝 Сотрудничество", callback_data="cooperation")

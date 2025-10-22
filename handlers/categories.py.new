@@ -1,0 +1,73 @@
+from aiogram import Router, F
+from aiogram.types import CallbackQuery
+from keyboards.main_menu import get_subcategory_menu, get_back_to_menu
+from database.db import get_session, get_category_by_slug, list_products
+
+router = Router()
+
+NO_PRODUCTS_TEXT = """📭 К сожалению, по данной категории пока нет добавленной мебели.
+
+Но не переживайте! Наш ассортимент постоянно пополняется новыми моделями.
+Рекомендуем периодически возвращаться и смотреть обновления."""
+
+
+@router.callback_query(F.data.startswith("category:"))
+async def handle_category_selection(callback: CallbackQuery):
+    """Обработчик выбора категории мебели"""
+    category_slug = callback.data.split(":", 1)[1]
+    
+    # Проверяем, есть ли подкатегории
+    keyboard = get_subcategory_menu(category_slug)
+    if keyboard:
+        await callback.message.edit_text(
+            "Выберите тип:",
+            reply_markup=keyboard
+        )
+        await callback.answer()
+        return
+
+    # Если нет подкатегорий, пытаемся показать товары
+    async with get_session() as session:
+        category = await get_category_by_slug(session, category_slug)
+        if not category:
+            await callback.message.edit_text(
+                "❌ Категория не найдена",
+                reply_markup=get_back_to_menu()
+            )
+            await callback.answer()
+            return
+            
+        products = await list_products(session, category_slug=category_slug)
+        if not products:
+            await callback.message.edit_text(
+                NO_PRODUCTS_TEXT,
+                reply_markup=get_back_to_menu()
+            )
+        else:
+            # TODO: Implement products list view
+            await callback.message.edit_text(
+                NO_PRODUCTS_TEXT,  # Временно, пока не реализован показ товаров
+                reply_markup=get_back_to_menu()
+            )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("subcategory:"))
+async def handle_subcategory_selection(callback: CallbackQuery):
+    """Обработчик выбора подкатегории мебели"""
+    _, category_slug, subcategory = callback.data.split(":")
+    
+    async with get_session() as session:
+        products = await list_products(session, category_slug=category_slug, subcategory=subcategory)
+        if not products:
+            await callback.message.edit_text(
+                NO_PRODUCTS_TEXT,
+                reply_markup=get_back_to_menu()
+            )
+        else:
+            # TODO: Implement products list view
+            await callback.message.edit_text(
+                NO_PRODUCTS_TEXT,  # Временно, пока не реализован показ товаров
+                reply_markup=get_back_to_menu()
+            )
+    await callback.answer()

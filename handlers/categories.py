@@ -1,10 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from keyboards.main_menu import get_subcategory_menu, get_products_menu, get_back_to_menu
-from keyboards.product_kb import get_product_actions
+from keyboards.main_menu import get_subcategory_menu, get_back_to_menu, get_products_menu, get_product_actions
 from database.db import get_session, get_category_by_slug, list_products, get_product
-
+from keyboards.product_kb import get_product_actions
 router = Router()
 
 NO_PRODUCTS_TEXT = """📭 К сожалению, по данной категории пока нет добавленной мебели.
@@ -13,37 +12,24 @@ NO_PRODUCTS_TEXT = """📭 К сожалению, по данной катего
 Рекомендуем периодически возвращаться и смотреть обновления."""
 
 
-def _format_price(value: float) -> str:
-    return f"{value:,.2f}".replace(",", " ")
-
-
-def _product_card_text(product) -> str:
-    stock = "✅ В наличии" if product.in_stock else "❌ Нет в наличии"
-    
-    text = f"<b>{product.title}</b>\n\n"
-    text += f"{product.description}\n\n"
-    
-    if product.price:
-        text += f"💰 Цена: <b>{_format_price(float(product.price))} ₽</b>\n"
-    
-    if product.dimensions:
-        text += f"📏 Размеры: {product.dimensions}\n"
-    
-    if product.country:
-        text += f"🌍 Страна: {product.country}\n"
-    
-    text += f"📦 Статус: {stock}"
-    
-    return text
-
-
 @router.callback_query(F.data.startswith("category:"))
 async def handle_category_selection(callback: CallbackQuery):
     """Обработчик выбора категории мебели"""
     category_slug = callback.data.split(":", 1)[1]
     
-    with get_session() as session:
-        category = get_category_by_slug(session, category_slug)
+    # Проверяем, есть ли подкатегории
+    keyboard = get_subcategory_menu(category_slug)
+    if keyboard:
+        await callback.message.edit_text(
+            "Выберите тип:",
+            reply_markup=keyboard
+        )
+        await callback.answer()
+        return
+
+    # Если нет подкатегорий, пытаемся показать товары
+    async with get_session() as session:
+        category = await get_category_by_slug(session, category_slug)
         if not category:
             await callback.message.edit_text(
                 "❌ Категория не найдена",
@@ -51,36 +37,69 @@ async def handle_category_selection(callback: CallbackQuery):
             )
             await callback.answer()
             return
-        
-        # Проверяем, есть ли подкатегории
-        from database.db import list_categories
-        subcategories = list_categories(session, parent_id=category.id)
-        
-        if subcategories:
-            # Если есть подкатегории, показываем их
-            await callback.message.edit_text(
-                f"🛋️ {category.name}\n\nВыберите подкатегорию:",
-                reply_markup=get_subcategory_menu(category_slug)
-            )
-        else:
-            # Если подкатегорий нет, проверяем товары
-            products = list_products(session, category_id=category.id)
-            if products:
-                await callback.message.edit_text(
-                    f"🛋️ {category.name}\n\nНайдено товаров: {len(products)}",
-                    reply_markup=get_products_menu(category_slug)
-                )
-            else:
-                await callback.message.edit_text(
-                    f"🛋️ {category.name}\n\n{NO_PRODUCTS_TEXT}",
-                    reply_markup=get_back_to_menu()
-                )
     
-    await callback.answer()
+    if products.country:
 
+        from aiogram import Router, F
+        from aiogram.types import CallbackQuery
+        from keyboards.main_menu import get_subcategory_menu, get_back_to_menu
+        from database.db import get_session, get_category_by_slug, list_products
 
-@router.callback_query(F.data.startswith("subcategory:"))
-async def handle_subcategory_selection(callback: CallbackQuery):
+        router = Router()
+
+        NO_PRODUCTS_TEXT = """📭 К сожалению, по данной категории пока нет добавленной мебели.\n\nНо не переживайте! Наш ассортимент постоянно пополняется новыми моделями.\nРекомендуем периодически возвращаться и смотреть обновления."""
+
+        @router.callback_query(F.data.startswith("category:"))
+        async def handle_category_selection(callback: CallbackQuery):
+            """Обработчик выбора категории мебели"""
+            category_slug = callback.data.split(":", 1)[1]
+            keyboard = get_subcategory_menu(category_slug)
+            if keyboard:
+                await callback.message.edit_text(
+                    "Выберите тип:",
+                    reply_markup=keyboard
+                )
+                await callback.answer()
+                return
+            async with get_session() as session:
+                category = await get_category_by_slug(session, category_slug)
+                if not category:
+                    await callback.message.edit_text(
+                        "❌ Категория не найдена",
+                        reply_markup=get_back_to_menu()
+                    )
+                    await callback.answer()
+                    return
+                products = await list_products(session, category_slug=category_slug)
+                if not products:
+                    await callback.message.edit_text(
+                        NO_PRODUCTS_TEXT,
+                        reply_markup=get_back_to_menu()
+                    )
+                else:
+                    await callback.message.edit_text(
+                        NO_PRODUCTS_TEXT,  # Временно, пока не реализован показ товаров
+                        reply_markup=get_back_to_menu()
+                    )
+            await callback.answer()
+
+        @router.callback_query(F.data.startswith("subcategory:"))
+        async def handle_subcategory_selection(callback: CallbackQuery):
+            """Обработчик выбора подкатегории мебели"""
+            _, category_slug, subcategory = callback.data.split(":")
+            async with get_session() as session:
+                products = await list_products(session, category_slug=category_slug, subcategory=subcategory)
+                if not products:
+                    await callback.message.edit_text(
+                        NO_PRODUCTS_TEXT,
+                        reply_markup=get_back_to_menu()
+                    )
+                else:
+                    await callback.message.edit_text(
+                        NO_PRODUCTS_TEXT,  # Временно, пока не реализован показ товаров
+                        reply_markup=get_back_to_menu()
+                    )
+            await callback.answer()
     """Обработчик выбора подкатегории"""
     subcategory_slug = callback.data.split(":", 1)[1]
     
@@ -145,7 +164,7 @@ async def handle_products_list(callback: CallbackQuery):
             
             await callback.message.edit_text(
                 text,
-                reply_markup=get_products_menu(category_slug, page, limit)
+                reply_markup=get(category_slug, page, limit)
             )
     
     await callback.answer()
@@ -166,7 +185,7 @@ async def handle_product_detail(callback: CallbackQuery):
             await callback.answer()
             return
         
-        text = _product_card_text(product)
+        text = product_card_text(product)
         
         # Определяем callback для кнопки назад
         back_callback = "main_menu"

@@ -29,6 +29,20 @@ class Category(Base):
         return f"Category(id={self.id!r}, slug={self.slug!r}, name={self.name!r})"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)  # Telegram user ID
+    username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    first_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    last_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id!r}, username={self.username!r}, is_admin={self.is_admin!r})"
+
+
 class ProductType(Base):
     __tablename__ = "product_types"
 
